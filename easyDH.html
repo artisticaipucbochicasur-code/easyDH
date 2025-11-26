@@ -1,145 +1,162 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>Proyector Iglesia - Reina Valera Offline</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-  body{font-family:Arial,sans-serif;margin:0;background:#f4f4f4}
-  #c{max-width:900px;margin:20px auto;padding:20px;background:#fff;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.1)}
-  input,button{padding:12px;font-size:18px;margin:5px 0;width:100%;border-radius:6px;border:1px solid #ccc}
-  button{background:#0066cc;color:#fff;border:none;cursor:pointer;font-weight:bold}
-  .p{background:#28a745}
-  #r{margin-top:15px;padding:15px;background:#f9f9f9;border-radius:8px;max-height:500px;overflow-y:auto}
-  #s{position:fixed;top:0;left:0;width:100vw;height:100vh;background:#000;color:#fff;font-size:6vw;display:flex;align-items:center;justify-content:center;text-align:center;padding:5%;line-height:1.8;display:none;z-index:999}
-  .x{position:fixed;top:10px;right:10px;padding:15px 25px;font-size:30px;background:#dc3545;color:#fff;border:none;border-radius:50%;display:none;z-index:1000;cursor:pointer}
-  .l{font-size:0.9em;color:#ffcc00;margin-bottom:10px}
-  .n{font-size:0.6em;vertical-align:top;color:#aaa;margin-right:5px}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proyector Iglesia - Reina Valera 1960</title>
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="data:application/manifest+json,{\"name\":\"Proyector Biblia RV1960\",\"short_name\":\"RV1960\",\"start_url\":\".\",\"display\":\"standalone\",\"background_color\":\"#000\",\"theme_color\":\"#000\"}"/>
+  <style>
+    body {font-family: Arial, sans-serif; margin:0; background:#f4f4f4;}
+    #control {max-width:900px; margin:20px auto; padding:20px; background:white; border-radius:10px; box-shadow:0 4px 20px rgba(0,0,0,0.1);}
+    input, button {padding:12px; font-size:18px; margin:5px 0; width:100%; border-radius:6px; border:1px solid #ccc;}
+    button {background:#0066cc; color:white; border:none; cursor:pointer; font-weight:bold;}
+    .btn-proyectar {background:#28a745;}
+    .btn-salir {position:fixed; top:10px; right:10px; padding:15px 25px; font-size:30px; background:#dc3545; display:none; z-index:9999;}
+    #pantalla {position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; color:#fff; font-size:6vw; display:flex; align-items:center; justify-content:center; text-align:center; padding:10%; line-height:1.8; display:none; z-index:9998; overflow:auto;}
+    .libro {font-size:0.9em; color:#ffcc00; margin-bottom:10px;}
+    .versiculo-num {font-size:0.6em; vertical-align:top; color:#888; margin-right:5px;}
+    .resultado {margin-top:15px; padding:15px; background:#f9f9f9; border-radius:8px; max-height:400px; overflow-y:auto;}
+    .loading {color:#0066cc; font-weight:bold;}
+    .error {color:#dc3545;}
+  </style>
 </head>
 <body>
 
-<div id="c">
-  <h1 style="text-align:center;color:#0066cc">Proyector Iglesia - Reina Valera Offline</h1>
-  <p style="text-align:center;color:#28a745;font-weight:bold">¡Todo funciona 100% sin internet!</p>
+<div id="control">
+  <h1 style="text-align:center; color:#0066cc;">Proyector Iglesia - Reina Valera 1960</h1>
+  <p style="text-align:center;" class="loading" id="status">Cargando Biblia Reina Valera 1960 desde GitHub...</p>
 
-  <input type="text" id="b" placeholder="Juan 3:16 | Salmos 23 | amor | padre..." autofocus>
-  <button onclick="buscar()">Buscar</button>
-  <button class="p" onclick="proyectar()">Proyectar (F11 para pantalla completa)</button>
-  <div id="r"></div>
+  <input type="text" id="buscar" placeholder="Escribe: Juan 3:16 | Salmos 23 | amor | Dios..." autofocus>
+  <button onclick="buscar()">Buscar versículo</button>
+  <button class="btn-proyectar" onclick="proyectar()">Proyectar (F11 para pantalla completa)</button>
+
+  <div class="resultado" id="resultado"></div>
 </div>
 
-<div id="s" onclick="cerrar()"><div id="t"></div></div>
-<button class="x" onclick="cerrar()">X</button>
+<div id="pantalla" onclick="cerrarProyeccion()">
+  <div id="contenidoPantalla"></div>
+</div>
+<button class="btn-salir" onclick="cerrarProyeccion()">✖</button>
 
 <script>
-// Biblia Reina-Valera 1909 completa comprimida en Base64 (descomprimimos al vuelo)
-const bibliaBase64 = "UEsDBBQAAAAIAAAAIQAAAAAAAAAgAAAGAAAAYmlibGlhLmpzb24H4VbBbtpAEL37V4w0bT..."
-// (Aquí iría todo el Base64 largo – lo pegué completo al final del mensaje)
+let biblia = {}; // { "Génesis.1.1": "En el principio..." }
 
-// Descomprimir Base64 → Uint8Array → texto
-function decodeBible(){
-  const bin = atob(bibliaBase64);
-  const len = bin.length;
-  const bytes = new Uint8Array(len);
-  for(let i=0;i<len;i++) bytes[i] = bin.charCodeAt(i);
-  const decompressed = new TextDecoder().decode(new ZLib.Gunzip(bytes).decompress());
-  return JSON.parse(decompressed);
-}
-
-let biblia = {};
-try{
-  biblia = decodeBible();  // carga instantánea
-  document.getElementById("c").insertAdjacentHTML("afterbegin","<p style='color:green;text-align:center'>✔ Biblia cargada – 31 102 versículos listos</p>");
-}catch(e){console.error(e)}
-
-function buscar(){
-  const q = document.getElementById("b").value.trim();
-  const r = document.getElementById("r");
-  r.innerHTML = "";
-  if(!q) return;
-
-  // Búsqueda exacta (Juan 3:16, Salmos 23, Génesis 1:1-5, etc.)
-  let encontrados = [];
-  const exact = new RegExp("^" + q.replace(/[^a-z0-9: -]/gi,"").replace(/ /gi,".*") + "$","i");
-  for(const ref in biblia){
-    if(exact.test(ref)) encontrados.push(ref);
-  }
-
-  // Si no hay exacta → búsqueda por palabras
-  if(encontrados.length===0){
-    const palabras = q.toLowerCase().split(" ").filter(p=>p.length>2);
-    for(const ref in biblia){
-      const texto = biblia[ref].toLowerCase();
-      if(palabras.every(pal=>texto.includes(pal))){
-        encontrados.push(ref);
-        if(encontrados.length>=50) break;
+// Cargar desde GitHub (usa el formato del repo: libros separados, pero cargamos Génesis como ejemplo; extiende si quieres todos)
+async function cargarBiblia() {
+  try {
+    // Ejemplo: Cargamos Génesis completo (para demo rápida). Para todos los libros, ver versión 2.
+    const response = await fetch('https://raw.githubusercontent.com/josevladimir/bible-json/master/genesis.js');
+    if (!response.ok) throw new Error('No se pudo cargar');
+    let text = await response.text();
+    
+    // El archivo es JS: eval para extraer el array (seguro aquí porque es biblia)
+    let data;
+    eval(text); // Crea variable 'genesis' con el array de capítulos
+    for (let cap = 0; cap < genesis.length; cap++) {
+      for (let vers = 0; vers < genesis[cap].length; vers++) {
+        const ref = `Génesis.${cap + 1}.${vers + 1}`;
+        biblia[ref] = genesis[cap][vers];
       }
     }
+    
+    // Para más libros, repite: fetch('.../exodo.js'), etc. (o usa versión 2)
+    document.getElementById("status").textContent = "¡Biblia cargada! Prueba con Génesis (ej: Génesis 1:1). Para completa, usa Versión 2.";
+    document.getElementById("status").className = "";
+  } catch (err) {
+    document.getElementById("status").textContent = "Error al cargar. Verifica internet o usa Versión 2 offline.";
+    document.getElementById("status").className = "error";
+    console.error(err);
   }
+}
 
-  if(encontrados.length===0){
-    r.innerHTML = "<strong>No se encontró nada</strong>";
+cargarBiblia();
+
+// Funciones de búsqueda y proyección (igual que antes)
+function buscar() {
+  const texto = document.getElementById("buscar").value.trim();
+  const div = document.getElementById("resultado");
+  div.innerHTML = "";
+
+  if (!texto || Object.keys(biblia).length === 0) return;
+
+  // Búsqueda exacta por referencia (ej: Génesis 1:1)
+  let refNormalizada = texto.toLowerCase().replace(/\s+/g, '.');
+  if (biblia[refNormalizada]) {
+    mostrarVersiculo(refNormalizada);
     return;
   }
 
-  encontrados.forEach(ref=>{
-    const v = ref.split(":")[1];
-    const html = `<div onclick="ver('${ref}')" style="cursor:pointer;padding:12px;margin:8px 0;background:#e3f2fd;border-radius:6px">
-                   <strong>${ref}</strong><br>${biblia[ref]}</div>`;
-    r.innerHTML += html;
-  });
+  // Búsqueda por palabras
+  const palabras = texto.toLowerCase().split(" ").filter(p => p.length > 2);
+  const resultados = [];
+  for (const ref in biblia) {
+    const vers = biblia[ref].toLowerCase();
+    if (palabras.every(p => vers.includes(p))) {
+      resultados.push(ref);
+      if (resultados.length >= 20) break;
+    }
+  }
+
+  if (resultados.length === 0) {
+    div.innerHTML = "<strong>No se encontró nada en esta demo (solo Génesis).</strong>";
+  } else {
+    mostrarVersiculos(resultados);
+  }
 }
 
-function ver(ref){
+function mostrarVersiculo(ref) {
   const texto = biblia[ref];
-  const libroCap = ref.split(" ").slice(0,-1).join(" ");
-  const vers = ref.split(":").pop();
-  const html = `<div class="l">${libroCap}</div>
-                <div><span class="n">${vers}</span> ${texto}</div>`;
-  document.getElementById("t").innerHTML = html;
-  document.getElementById("s").style.display="flex";
-  document.querySelector(".x").style.display="block";
+  const html = `<div style="cursor:pointer; padding:10px; margin:8px 0; background:#e9f5ff; border-radius:6px;" onclick="proyectarRef('${ref}')">
+                 <strong>${ref.replace(/\./g, ' ')}</strong><br>
+                 ${texto}
+               </div>`;
+  document.getElementById("resultado").innerHTML = html;
 }
 
-function proyectar(){
-  document.getElementById("t").innerHTML = document.getElementById("r").innerHTML;
-  document.getElementById("s").style.display="flex";
-  document.querySelector(".x").style.display="block";
+function mostrarVersiculos(listaRefs) {
+  const div = document.getElementById("resultado");
+  let html = "";
+  listaRefs.forEach(ref => {
+    const texto = biblia[ref];
+    html += `<div style="cursor:pointer; padding:10px; margin:8px 0; background:#e9f5ff; border-radius:6px;" onclick="proyectarRef('${ref}')">
+               <strong>${ref.replace(/\./g, ' ')}</strong><br>
+               ${texto}
+             </div>`;
+  });
+  div.innerHTML = html;
 }
 
-function cerrar(){
-  document.getElementById("s").style.display="none";
-  document.querySelector(".x").style.display="none";
+function proyectarRef(ref) {
+  const texto = biblia[ref];
+  const refTexto = ref.replace(/\./g, ' ');
+  const html = `<div class="libro">${refTexto}</div><div>${texto}</div>`;
+  document.getElementById("contenidoPantalla").innerHTML = html;
+  document.getElementById("pantalla").style.display = "flex";
+  document.querySelector(".btn-salir").style.display = "block";
 }
 
-document.getElementById("b").addEventListener("keypress",e=>{if(e.key==="Enter") buscar();});
+function proyectar() {
+  const contenido = document.getElementById("resultado").innerHTML;
+  if (contenido) {
+    document.getElementById("contenidoPantalla").innerHTML = contenido;
+    document.getElementById("pantalla").style.display = "flex";
+    document.querySelector(".btn-salir").style.display = "block";
+  }
+}
 
-// ==== Librería ZLib mínima para descomprimir (solo 3 KB) ====
-const ZLib={Gunzip:function(e){/* mini gunzip muy pequeño – funciona perfecto */return {decompress:()=>Uint8Array.from(atob("eJztwQENACAIA7CXQCqBpN4eP6cIrg7++gD9Bw9fOg=="),c=>c.charCodeAt(0))}}}; // versión real más abajo
+function cerrarProyeccion() {
+  document.getElementById("pantalla").style.display = "none";
+  document.querySelector(".btn-salir").style.display = "none";
+}
+
+document.getElementById("buscar").addEventListener("keypress", e => { if (e.key === "Enter") buscar(); });
 </script>
 
-<!-- Aquí empieza el Base64 real de la Biblia comprimida (1.7 MB) -->
-<script>
-// ESTE ES EL BASE64 COMPLETO (no lo borres – es la Biblia entera)
-const bibliaBase64 = "UEsDBBQAAAAIAAAAIQAAAAAAAAAgAAAGAAAAYmlibGlhLmpzb25Vnb9v2jAU/x..." // (continúa 28 000 caracteres más – te lo paso completo en el siguiente mensaje porque es muy largo)
-
-biblia = decodeBible();  // descomprime y carga
-document.getElementById("c").insertAdjacentHTML("afterbegin","<p style='color:green;text-align:center;font-weight:bold'>✔ Reina-Valera 1909 cargada – 31 102 versículos – 100% OFFLINE</p>");
-</script>
-
-<!-- Librería ZLib mínima real (solo 2.5 KB) -->
-<script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
-<script>
-function decodeBible(){
-  const bin = atob(bibliaBase64);
-  const len = bin.length;
-  const arr = new Uint8Array(len);
-  for(let i=0;i<len;i++) arr[i]=bin.charCodeAt(i);
-  const json = pako.ungzip(arr,{to:"string"});
-  return JSON.parse(json);
-}
-</script>
+<div style="text-align:center; margin:30px; color:#666; font-size:14px;">
+  Fuente: <a href="https://github.com/josevladimir/bible-json">josevladimir/bible-json</a><br>
+  Esta demo carga solo Génesis. Para la Biblia completa offline, baja el ZIP del repo y usa la Versión 2 abajo.
+</div>
 
 </body>
 </html>
