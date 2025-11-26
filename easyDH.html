@@ -1,60 +1,84 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>Proyector Iglesia - Reina Valera Completa</title>
-<style>
-  body{font-family:Arial,sans-serif;margin:0;background:#f1f1f1}
-  #c{max-width:900px;margin:30px auto;padding:20px;background:#fff;border-radius:12px;box-shadow:0 5px 20px rgba(0,0,0,0.2)}
-  input,button{padding:15px;font-size:20px;margin:10px 0;width:100%;border-radius:8px;border:none}
-  input{border:2px solid #ccc}
-  button{background:#0066cc;color:#fff;cursor:pointer;font-weight:bold}
-  .p{background:#28a745}
-  #r{margin-top:20px;padding:15px;background:#f9f9f9;border-radius:8px;max-height:500px;overflow-y:auto}
-  #s{position:fixed;top:0;left:0;width:100vw;height:100vh;background:#000;color:#fff;font-size:7vw;display:flex;align-items:center;justify-content:center;text-align:center;padding:5%;line-height:1.9;display:none;z-index:99}
-  .x{position:fixed;top:15px;right:15px;padding:15px 28px;font-size:38px;background:#c00;color:#fff;border-radius:50%;display:none;z-index:100;cursor:pointer}
-  .ok{color:green;font-weight:bold;text-align:center;font-size:20px}
-  .versiculo{cursor:pointer;background:#e3f2fd;padding:14px;margin:10px 0;border-radius:10px}
-</style>
+  <meta charset="UTF-8">
+  <title>Proyector Iglesia - Reina Valera Completa</title>
+  <style>
+    body{font-family:Arial,sans-serif;margin:0;background:#f1f1f1}
+    #c{max-width:900px;margin:30px auto;padding:20px;background:#fff;border-radius:12px;box-shadow:0 5px 20px rgba(0,0,0,0.2)}
+    input,button{padding:15px;font-size:20px;margin:10px 0;width:100%;border-radius:8px;border:none}
+    input{border:2px solid #ccc}
+    button{background:#0066cc;color:#fff;cursor:pointer;font-weight:bold}
+    .p{background:#28a745}
+    #r{margin-top:20px;padding:15px;background:#f9f9f9;border-radius:8px;max-height:500px;overflow-y:auto}
+    #s{position:fixed;top:0;left:0;width:100vw;height:100vh;background:#000;color:#fff;font-size:7vw;display:flex;align-items:center;justify-content:center;text-align:center;padding:5%;line-height:1.9;display:none;z-index:99}
+    .x{position:fixed;top:15px;right:15px;padding:15px 28px;font-size:38px;background:#c00;color:#fff;border-radius:50%;display:none;z-index:100;cursor:pointer}
+    .ok{color:green;font-weight:bold;text-align:center;font-size:20px}
+    .error{color:red;font-weight:bold;text-align:center;font-size:18px}
+    .versiculo{cursor:pointer;background:#e3f2fd;padding:14px;margin:10px 0;border-radius:10px}
+  </style>
 </head>
 <body>
 <div id="c">
   <h1 style="text-align:center;color:#0066cc;margin-bottom:5px">Proyector Iglesia</h1>
   <div id="status" class="ok">Cargando Biblia completa...</div>
-
   <input type="text" id="q" placeholder="Juan 3:16 | Salmos 23 | amor | Salmos 23:1-6" autofocus>
   <button onclick="buscar()">Buscar versículo</button>
   <button class="p" onclick="proyectar()">Proyectar (F11)</button>
   <div id="r"></div>
 </div>
-
 <div id="s" onclick="cerrar()"><div id="t"></div></div>
 <button class="x" onclick="cerrar()">X</button>
-
 <script>
 let biblia = {};
 
-fetch('SPA_RV.json')  // ← el archivo está en la misma carpeta → funciona perfecto
-  .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+// Fallback con versículos clave (para probar si JSON falla)
+const fallbackBiblia = {
+  "Génesis 1:1": "En el principio creó Dios los cielos y la tierra.",
+  "Juan 3:16": "Porque de tal manera amó Dios al mundo, que ha dado a su Hijo unigénito, para que todo aquel que en él cree, no se pierda, mas tenga vida eterna.",
+  "Salmos 23:1": "Jehová es mi pastor; nada me faltará.",
+  "Salmos 23:2": "En lugares de delicados pastos me hará descansar; junto a aguas de reposo me pastoreará.",
+  "Salmos 23:3": "Confortará mi alma; me guiará por sendas de justicia por amor de su nombre.",
+  "Salmos 23:4": "Aunque ande en valle de sombra de muerte, no temeré mal alguno, porque tú estarás conmigo; tu vara y tu cayado me infundirán aliento.",
+  "Mateo 6:9": "Vosotros, pues, oraréis así: Padre nuestro que estás en los cielos, santificado sea tu nombre.",
+  "Mateo 6:10": "Venga tu reino. Hágase tu voluntad, como en el cielo, así también en la tierra.",
+  "Mateo 6:11": "El pan nuestro de cada día, dánoslo hoy.",
+  "Mateo 6:12": "Y perdónanos nuestras deudas, como también nosotros perdonamos a nuestros deudores.",
+  "Mateo 6:13": "Y no nos metas en tentación, mas líbranos del mal; porque tuyo es el reino, y el poder, y la gloria, por todos los siglos. Amén.",
+  "Romanos 8:28": "Y sabemos que a los que aman a Dios, todas las cosas les ayudan a bien, esto es, a los que conforme a su propósito son llamados.",
+  "Filipenses 4:13": "Todo lo puedo en Cristo que me fortalece.",
+  "Isaías 40:31": "Pero los que esperan a Jehová tendrán nuevas fuerzas; levantarán alas como las águilas; correrán, y no se cansarán; caminarán, y no se fatigarán."
+};
+
+// Carga el JSON correcto (SPA_RV1865.json)
+fetch('SPA_RV1865.json')
+  .then(r => {
+    if (!r.ok) {
+      throw new Error(`HTTP ${r.status}: ${r.statusText} - Verifica el nombre del archivo en GitHub`);
+    }
+    return r.json();
+  })
   .then(data => {
     data.forEach(v => {
       const ref = `${v.book_name} ${v.chapter}:${v.verse}`;
       biblia[ref] = v.text;
       biblia[ref.toLowerCase()] = v.text;
     });
-    document.getElementById("status").innerHTML = "¡BIBLIA CARGADA! 31 102 versículos listos";
+    document.getElementById("status").innerHTML = `¡BIBLIA CARGADA! ${Object.keys(biblia).length} versículos listos`;
+    document.getElementById("status").className = "ok";
   })
-  .catch(() => {
-    document.getElementById("status").innerHTML = "Error: SPA_RV.json no encontrado";
+  .catch(err => {
+    console.error('Error detallado:', err); // Para debug en consola (F12)
+    Object.assign(biblia, fallbackBiblia); // Usa fallback
+    document.getElementById("status").innerHTML = `Error cargando SPA_RV1865.json: ${err.message}. Usando versículos clave para prueba. Sube el archivo correcto a GitHub.`;
+    document.getElementById("status").className = "error";
   });
 
 function buscar(){
   const q = document.getElementById("q").value.trim().toLowerCase();
   const r = document.getElementById("r"); r.innerHTML="";
-  if(!q) return;
-
+  if(!q || Object.keys(biblia).length===0) return;
   let resultados = [];
-
   // Referencia exacta o capítulo
   for(let ref in biblia){
     if(ref.toLowerCase().includes(q)){
@@ -62,7 +86,6 @@ function buscar(){
       if(resultados.length>100) break;
     }
   }
-
   // Búsqueda por palabras si no hay referencia exacta
   if(resultados.length===0){
     const palabras = q.split(" ").filter(p=>p.length>2);
@@ -73,35 +96,29 @@ function buscar(){
       }
     }
   }
-
   if(resultados.length===0){
     r.innerHTML="<i>No encontrado</i>";
     return;
   }
-
   resultados.forEach(ref=>{
     r.innerHTML += `<div class="versiculo" onclick="ver('${ref}')">
                       <b>${ref}</b><br>${biblia[ref]}</div>`;
   });
 }
-
 function ver(ref){
   document.getElementById("t").innerHTML = `<div style="font-size:1.3em;color:#ff0">${ref}</div><br>${biblia[ref]}`;
   document.getElementById("s").style.display="flex";
   document.querySelector(".x").style.display="block";
 }
-
 function proyectar(){
   document.getElementById("t").innerHTML = document.getElementById("r").innerHTML;
   document.getElementById("s").style.display="flex";
   document.querySelector(".x").style.display="block";
 }
-
 function cerrar(){
   document.getElementById("s").style.display="none";
   document.querySelector(".x").style.display="none";
 }
-
 document.getElementById("q").addEventListener("keypress",e=>{if(e.key==="Enter") buscar();});
 </script>
 </body>
