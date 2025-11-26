@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <title>Proyector Iglesia - Reina Valera Completa</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
   body{font-family:Arial,sans-serif;margin:0;background:#f1f1f1}
   #c{max-width:900px;margin:30px auto;padding:20px;background:#fff;border-radius:12px;box-shadow:0 5px 20px rgba(0,0,0,0.2)}
@@ -21,7 +20,7 @@
 <body>
 <div id="c">
   <h1 style="text-align:center;color:#0066cc;margin-bottom:5px">Proyector Iglesia</h1>
-  <div id="status" class="ok">Cargando Biblia completa (31 102 versículos)...</div>
+  <div id="status" class="ok">Cargando Biblia completa...</div>
 
   <input type="text" id="q" placeholder="Juan 3:16 | Salmos 23 | amor | Salmos 23:1-6" autofocus>
   <button onclick="buscar()">Buscar versículo</button>
@@ -35,9 +34,8 @@
 <script>
 let biblia = {};
 
-// Carga el JSON que ya está en el mismo repositorio
-fetch('SPA_RV.json')
-  .then(r => r.json())
+fetch('SPA_RV.json')  // ← el archivo está en la misma carpeta → funciona perfecto
+  .then(r => { if (!r.ok) throw new Error(); return r.json(); })
   .then(data => {
     data.forEach(v => {
       const ref = `${v.book_name} ${v.chapter}:${v.verse}`;
@@ -47,17 +45,27 @@ fetch('SPA_RV.json')
     document.getElementById("status").innerHTML = "¡BIBLIA CARGADA! 31 102 versículos listos";
   })
   .catch(() => {
-    document.getElementById("status").innerHTML = "Error cargando SPA_RV.json – revisa el nombre";
+    document.getElementById("status").innerHTML = "Error: SPA_RV.json no encontrado";
   });
 
 function buscar(){
-  const q = document.getElementById("q").value.trim();
+  const q = document.getElementById("q").value.trim().toLowerCase();
   const r = document.getElementById("r"); r.innerHTML="";
-  if(!q || Object.keys(biblia).length===0) return;
+  if(!q) return;
 
-  let resultados = buscarReferencia(q);
+  let resultados = [];
+
+  // Referencia exacta o capítulo
+  for(let ref in biblia){
+    if(ref.toLowerCase().includes(q)){
+      resultados.push(ref);
+      if(resultados.length>100) break;
+    }
+  }
+
+  // Búsqueda por palabras si no hay referencia exacta
   if(resultados.length===0){
-    const palabras = q.toLowerCase().split(" ").filter(p=>p.length>2);
+    const palabras = q.split(" ").filter(p=>p.length>2);
     for(let ref in biblia){
       if(palabras.every(p=>biblia[ref].toLowerCase().includes(p))){
         resultados.push(ref);
@@ -67,52 +75,18 @@ function buscar(){
   }
 
   if(resultados.length===0){
-    r.innerHTML="<i>No se encontró nada</i>";
+    r.innerHTML="<i>No encontrado</i>";
     return;
   }
 
   resultados.forEach(ref=>{
-    const texto = biblia[ref.toLowerCase()||ref];
     r.innerHTML += `<div class="versiculo" onclick="ver('${ref}')">
-                      <b>${ref}</b><br>${texto}</div>`;
+                      <b>${ref}</b><br>${biblia[ref]}</div>`;
   });
 }
 
-function buscarReferencia(q){
-  q = q.toLowerCase().trim();
-  let lista = [];
-
-  // Rango: Salmos 23:1-6
-  const rango = q.match(/(.+?)\s+(\d+):(\d+)-(\d+)/i);
-  if(rango){
-    const libroCap = rango[1].trim() + " " + rango[2];
-    for(let v=parseInt(rango[3]); v<=parseInt(rango[4]); v++){
-      const clave = `${libroCap}:${v}`;
-      if(biblia[clave.toLowerCase()]) lista.push(clave);
-    }
-    return lista;
-  }
-
-  // Versículo exacto
-  const exacto = Object.keys(biblia).find(k => k.toLowerCase() === q || k.toLowerCase().includes(q));
-  if(exacto) return [exacto];
-
-  // Capítulo completo
-  const cap = q.match(/(.+?)\s+(\d+)/i);
-  if(cap){
-    const libro = cap[1].trim(), chapter = cap[2];
-    for(let v=1; v<=200; v++){
-      const clave = `${libro} ${chapter}:${v}`;
-      if(biblia[clave.toLowerCase()]) lista.push(clave);
-      else break;
-    }
-  }
-  return lista;
-}
-
 function ver(ref){
-  const texto = biblia[ref.toLowerCase()||ref];
-  document.getElementById("t").innerHTML = `<div style="font-size:1.3em;color:#ff0">${ref}</div><br>${texto}`;
+  document.getElementById("t").innerHTML = `<div style="font-size:1.3em;color:#ff0">${ref}</div><br>${biblia[ref]}`;
   document.getElementById("s").style.display="flex";
   document.querySelector(".x").style.display="block";
 }
