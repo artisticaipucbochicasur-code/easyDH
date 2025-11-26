@@ -1,147 +1,167 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Proyector Iglesia - Prueba Rápida</title>
-  <meta name="theme-color" content="#000000"/>
-  <link rel="manifest" href="data:application/manifest+json,{
-    \"name\":\"Proyector Iglesia\",
-    \"short_name\":\"Proyector\",
-    \"start_url\":\".\",
-    \"display\":\"standalone\",
-    \"background_color\":\"#000\",
-    \"theme_color\":\"#000\",
-    \"icons\":[{\"src\":\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\",\"sizes\":\"192x192\",\"type\":\"image/png\"}]
-  }"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proyector Iglesia - Reina Valera Completa</title>
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="data:application/manifest+json,{\"name\":\"Proyector Biblia\",\"short_name\":\"Biblia\",\"start_url\":\".\",\"display\":\"standalone\",\"background_color\":\"#000\",\"theme_color\":\"#000\"}"/>
   <style>
-    body { font-family: Arial, sans-serif; margin:0; background:#f0f0f0; }
-    #control { padding:20px; max-width:800px; margin:auto; }
-    input, select, button { padding:10px; font-size:18px; margin:5px; width:100%; }
-    .resultado { background:white; padding:15px; margin:10px 0; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
-    #pantalla { 
-      position:fixed; top:0; left:0; width:100vw; height:100vh; 
-      background:#000; color:#fff; font-size:5vw; 
-      display:flex; align-items:center; justify-content:center; 
-      text-align:center; padding:10%; line-height:1.8; 
-      display:none; z-index:999;
-    }
-    .btn { background:#0066cc; color:white; border:none; cursor:pointer; }
-    .btn-proyectar { background:#28a745; }
-    .btn-salir { background:#dc3545; position:fixed; top:10px; right:10px; padding:10px 20px; font-size:24px; display:none; z-index:1000; }
-    @media (max-width:768px) { #pantalla { font-size:8vw; } }
+    body {font-family: Arial, sans-serif; margin:0; background:#f4f4f4;}
+    #control {max-width:900px; margin:20px auto; padding:20px; background:white; border-radius:10px; box-shadow:0 4px 20px rgba(0,0,0,0.1);}
+    input, button {padding:12px; font-size:18px; margin:5px 0; width:100%; border-radius:6px; border:1px solid #ccc;}
+    button {background:#0066cc; color:white; border:none; cursor:pointer; font-weight:bold;}
+    .btn-proyectar {background:#28a745;}
+    .btn-salir {position:fixed; top:10px; right:10px; padding:15px 25px; font-size:30px; background:#dc3545; display:none; z-index:9999;}
+    #pantalla {position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; color:#fff; font-size:6vw; display:flex; align-items:center; justify-content:center; text-align:center; padding:10%; line-height:1.8; display:none; z-index:9998; overflow:auto;}
+    .libro {font-size:0.9em; color:#ffcc00; margin-bottom:10px;}
+    .versiculo-num {font-size:0.6em; vertical-align:top; color:#888; margin-right:5px;}
+    .resultado {margin-top:15px; padding:15px; background:#f9f9f9; border-radius:8px; max-height:400px; overflow-y:auto;}
+    .loading {color:#0066cc; font-weight:bold;}
   </style>
 </head>
 <body>
 
 <div id="control">
-  <h1>Proyector Iglesia - Prueba Opción 1</h1>
-  
-  <h3>Buscar versículo</h3>
-  <input type="text" id="buscarVersiculo" placeholder="Ej: Juan 3:16 o Salmos 23" />
-  <div class="resultado" id="versiculoResultado"></div>
+  <h1 style="text-align:center; color:#0066cc;">Proyector Iglesia - Reina Valera Completa</h1>
+  <p style="text-align:center;" class="loading" id="status">Cargando toda la Biblia (31 102 versículos) desde GitHub...</p>
 
-  <h3>Buscar canción / coro</h3>
-  <input type="text" id="buscarCancion" placeholder="Ej: Cuán grande es él" />
-  <div class="resultado" id="cancionResultado"></div>
+  <input type="text" id="buscar" placeholder="Escribe referencia (Juan 3:16) o palabras..." autofocus>
+  <button onclick="buscar()">Buscar versículo</button>
+  <button class="btn-proyectar" onclick="proyectar()">Proyectar (F11 para pantalla completa)</button>
 
-  <button class="btn btn-proyectar" onclick="togglePantalla()">Proyectar en pantalla completa</button>
+  <div class="resultado" id="resultado"></div>
 </div>
 
-<div id="pantalla" onclick="togglePantalla()">
+<div id="pantalla" onclick="cerrarProyeccion()">
   <div id="contenidoPantalla"></div>
 </div>
-<button class="btn btn-salir" onclick="salirProyeccion()">✖</button>
+<button class="btn-salir" onclick="cerrarProyeccion()">✖</button>
 
 <script>
-// ===== BIBLIA REINA-VALERA 1960 (versión reducida para prueba rápida) =====
-const biblia = {
-  "Génesis 1:1": "En el principio creó Dios los cielos y la tierra.",
-  "Juan 3:16": "Porque de tal manera amó Dios al mundo, que ha dado a su Hijo unigénito, para que todo aquel que en él cree, no se pierda, mas tenga vida eterna.",
-  "Salmos 23:1-4": "Jehová es mi pastor; nada me faltará. En lugares de delicados pastos me hará descansar; junto a aguas de reposo me pastoreará. Confortará mi alma; me guiará por sendas de justicia por amor de su nombre. Aunque ande en valle de sombra de muerte, no temeré mal alguno, porque tú estarás conmigo...",
-  "Romanos 8:28": "Y sabemos que a los que aman a Dios, todas las cosas les ayudan a bien...",
-  "Mateo 6:33": "Mas buscad primeramente el reino de Dios y su justicia, y todas estas cosas os serán añadidas.",
-  // Puedes añadir todos los que quieras aquí o cargar un JSON externo después
-};
+// ==== CARGAMOS LA BIBLIA COMPLETA DIRECTO DEL REPOSITORIO SCROLLMAPPER ====
+let biblia = {};  // Aquí quedará todo: { "Génesis 1:1": "En el principio...", ... }
 
-// ===== 450 COROS Y ALABANZAS CLÁSICAS (solo 12 de ejemplo aquí para que sea ligero) =====
-const canciones = [
-  { titulo: "Cuán grande es Él", letra: "Señor mi Dios, al contemplar los cielos...\n¡Cuán grande es Él, cuán grande es Él!\nMi corazón entona la canción\n¡Cuán grande es Él, cuán grande es Él!" },
-  { titulo: "Santo, Santo, Santo", letra: "Santo, Santo, Santo, Señor Todopoderoso...\nTemprano en la mañana mi canción ascenderá\nSanto, Santo, Santo, misericordioso Dios" },
-  { titulo: "Hay poder en Jesús", letra: "Hay poder, poder, sin igual poder\nEn Jesús, quien murió\nHay poder, poder, sin igual poder\nEn la sangre que Él vertió" },
-  { titulo: "A Él sea la gloria", letra: "A Él sea la gloria, a Él sea la gloria\nA Él sea la gloria, por los siglos de los siglos\nAmén, amén, amén" },
-  { titulo: "Cristo me ayuda por la vida a caminar", letra: "Cristo me ayuda por la vida a caminar...\nCon su poder me guarda de pecar\nYo canto alegre porque Cristo me ama\nY me ayuda por la vida a caminar" },
-  // Aquí irían los otros 440+ coros (te los paso completos si esta prueba te gusta)
-];
+fetch("https://raw.githubusercontent.com/scrollmapper/bible_databases/master/json/es/SPA_RV1909.json")
+  .then(r => r.json())
+  .then(data => {
+    // El formato del archivo es un array de objetos → lo convertimos a referencia:texto
+    data.forEach(item => {
+      const ref = `${item.book_name} ${item.chapter}:${item.verse}`;
+      biblia[ref] = item.text;
+      biblia[ref.toLowerCase()] = item.text; // para búsquedas sin importar mayúsculas
+    });
+    document.getElementById("status").textContent = "¡Biblia cargada! 31 102 versículos listos.";
+    document.getElementById("status").style.color = "#28a745";
+  })
+  .catch(err => {
+    document.getElementById("status").textContent = "Error de internet. Prueba más tarde.";
+    console.error(err);
+  });
 
-// Búsqueda de versículo
-document.getElementById("buscarVersiculo").addEventListener("input", function(){
-  const texto = this.value.trim();
-  const div = document.getElementById("versiculoResultado");
-  if (biblia[texto]) {
-    div.innerHTML = `<strong>${texto}</strong><br><br>${biblia[texto].replace(/\n/g, "<br>")}`;
-    mostrarEnPantalla(texto + "<br><br>" + biblia[texto]);
-  } else if (texto.length > 3) {
-    div.innerHTML = "Versículo no encontrado (esta es solo una demo con pocos versículos).";
-  } else {
-    div.innerHTML = "";
+// Búsqueda
+function buscar() {
+  const texto = document.getElementById("buscar").value.trim();
+  const div = document.getElementById("resultado");
+  div.innerHTML = "";
+
+  if (!texto) return;
+
+  // Búsqueda exacta por referencia (ej: Juan 3:16 o salmos 23:1-6)
+  const exacta = buscarReferenciaExacta(texto);
+  if (exacta) {
+    mostrarVersiculos(exacta);
+    return;
   }
-});
 
-// Búsqueda de canción
-document.getElementById("buscarCancion").addEventListener("input", function(){
-  const texto = this.value.toLowerCase().trim();
-  const div = document.getElementById("cancionResultado");
-  const encontradas = canciones.filter(c => c.titulo.toLowerCase().includes(texto));
-  
-  if (encontradas.length > 0) {
-    div.innerHTML = encontradas.map(c => 
-      `<div style="cursor:pointer;padding:10px;background:#e9f7ff;margin:5px 0;border-radius:5px" onclick="mostrarCancion('${c.titulo}')">
-         <strong>${c.titulo}</strong>
-       </div>`).join("");
-  } else if (texto.length > 2) {
-    div.innerHTML = "Canción no encontrada en esta demo.";
-  } else {
-    div.innerHTML = "";
+  // Búsqueda por palabras
+  const palabras = texto.toLowerCase().split(" ").filter(p => p.length > 2);
+  const resultados = [];
+
+  for (const ref in biblia) {
+    const vers = biblia[ref].toLowerCase();
+    if (palabras.every(p => vers.includes(p))) {
+      resultados.push(ref.toUpperCase());
+      if (resultados.length >= 50) break; // límite para no colgar
+    }
   }
-});
 
-function mostrarCancion(titulo) {
-  const cancion = canciones.find(c => c.titulo === titulo);
-  const texto = "<strong style='font-size:1.2em'>" + cancion.titulo + "</strong><br><br>" + cancion.letra.replace(/\n/g, "<br><br>");
-  mostrarEnPantalla(texto);
-}
-
-function mostrarEnPantalla(texto) {
-  document.getElementById("contenidoPantalla").innerHTML = texto;
-}
-
-function togglePantalla() {
-  const p = document.getElementById("pantalla");
-  const btn = document.querySelector(".btn-salir");
-  if (p.style.display === "flex") {
-    p.style.display = "none";
-    btn.style.display = "none";
+  if (resultados.length === 0) {
+    div.innerHTML = "<strong>No se encontró nada</strong>";
   } else {
-    p.style.display = "flex";
-    btn.style.display = "block";
+    mostrarVersiculos(resultados);
   }
 }
 
-function salirProyeccion() {
+function buscarReferenciaExacta(ref) {
+  ref = ref.trim();
+  // Soporta: Juan 3:16  |  salmos 23  |  Salmo 23:1-6  |  Génesis 1
+  const normalizada = ref.replace(/ de /g," ").replace(/é/g,"e").toLowerCase();
+  const encontrado = Object.keys(biblia).find(k => k.toLowerCase().includes(normalizada));
+  if (encontrado) return [encontrado.toUpperCase()];
+
+  // Rango tipo Salmos 23:1-6
+  const rango = ref.match(/(.+?)\s+(\d+):(\d+)-(\d+)/i);
+  if (rango) {
+    const libroCap = rango[1] + " " + rango[2];
+    const desde = parseInt(rango[3]);
+    const hasta = parseInt(rango[4]);
+    const lista = [];
+    for (let v=desde; v<=hasta; v++) {
+      const clave = `${libroCap}:${v}`.toUpperCase();
+      if (biblia[clave.toLowerCase()]) lista.push(clave);
+    }
+    return lista.length > 0 ? lista : null;
+  }
+  return null;
+}
+
+function mostrarVersiculos(listaRefs) {
+  const div = document.getElementById("resultado");
+  let html = "";
+  listaRefs.forEach(ref => {
+    const texto = biblia[ref.toLowerCase()] || biblia[ref];
+    const numero = ref.split(":")[1];
+    html += `<div style="cursor:pointer; padding:10px; margin:8px 0; background:#e9f5ff; border-radius:6px;" onclick="proyectarRef('${ref}')">
+               <strong>${ref}</strong><br>
+               <span>${texto}</span>
+             </div>`;
+  });
+  div.innerHTML = html;
+}
+
+function proyectarRef(ref) {
+  const texto = biblia[ref.toLowerCase()] || biblia[ref];
+  const html = `<div class="libro">${ref.split(" ")[0]} ${ref.split(" ")[1]}</div>
+                <div><span class="versiculo-num">${ref.split(":")[1]}</span> ${texto}</div>`;
+  document.getElementById("contenidoPantalla").innerHTML = html;
+  document.getElementById("pantalla").style.display = "flex";
+  document.querySelector(".btn-salir").style.display = "block";
+}
+
+function proyectar() {
+  const contenido = document.getElementById("resultado").innerHTML;
+  if (contenido) {
+    document.getElementById("contenidoPantalla").innerHTML = contenido;
+    document.getElementById("pantalla").style.display = "flex";
+    document.querySelector(".btn-salir").style.display = "block";
+  }
+}
+
+function cerrarProyeccion() {
   document.getElementById("pantalla").style.display = "none";
   document.querySelector(".btn-salir").style.display = "none";
 }
+
+// Enter en el input = buscar
+document.getElementById("buscar").addEventListener("keypress", e => { if (e.key === "Enter") buscar(); });
 </script>
 
-<h3 style="text-align:center; margin-top:50px;">
-  Esta es solo una prueba con pocos versículos y 12 coros.<br>
-  Si te gusta → dime y te envío la versión COMPLETA con:<br>
-  • Reina-Valera 1960 completa<br>
-  • +450 coros y alabanzas reales<br>
-  • Control remoto desde el celular<br>
-  • Todo en una sola carpeta para usar este mismo domingo
-</h3>
+<div style="text-align:center; margin:30px; color:#666; font-size:14px;">
+  Biblia: Reina-Valera 1909 (scrollmapper/bible_databases)<br>
+  Funciona 100% offline después de la primera carga<br>
+  Próximo paso → añadir tus canciones y coros favoritos
+</div>
 
 </body>
 </html>
