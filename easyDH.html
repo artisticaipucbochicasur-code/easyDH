@@ -31,7 +31,7 @@
 <div id="der">
   <div id="c">
     <h1 style="text-align:center;color:#0066cc">Proyector Iglesia - Reina Valera 1865</h1>
-    <div id="status" class="ok">Cargando Biblia completa (31 102 versículos)...</div>
+    <div id="status" class="ok">Cargando Biblia completa...</div>
     <input type="text" id="q" placeholder="Juan 3:16 | Salmos 23 | amor | padre nuestro" autofocus>
     <button onclick="buscar()">Buscar en toda la Biblia</button>
     <button class="p" onclick="proyectar()">Proyectar (F11)</button>
@@ -43,47 +43,46 @@
 <button class="x" onclick="cerrar()">X</button>
 
 <script>
-// === CARGA EL ARCHIVO GRANDE CON CORS FIISO (funciona al 100%) ===
-fetch('https://raw.githubusercontent.com/artisticaipucbochicasur-code/easyDH/main/SpaRV1865.json')
-  .then(r => r.json())
-  .then(data => cargarBiblia(data))
-  .catch(() => {
-    document.getElementById("status").innerHTML = "Error de red. Intenta recargar (F5)";
-  });
-
 let biblia = {};
 let libros = [];
 
-function cargarBiblia(data) {
-  libros = data;
+// CARGA TU ARCHIVO LOCAL (el que está en el mismo repo)
+fetch('SpaRV1865.json?' + Date.now())   // el ? + Date.now() evita caché de GitHub
+  .then(r => r.json())
+  .then(data => {
+    libros = data;
 
-  // Lista de libros
-  const lista = document.getElementById("lista-libros");
-  lista.innerHTML = "";
-  data.forEach((libro, i) => {
-    const div = document.createElement("div");
-    div.className = "libro";
-    div.textContent = libro.name;
-    div.onclick = () => mostrarCapitulos(i, libro);
-    lista.appendChild(div);
-  });
+    // Mostrar libros
+    const lista = document.getElementById("lista-libros");
+    lista.innerHTML = "";
+    data.forEach((libro, i) => {
+      const div = document.createElement("div");
+      div.className = "libro";
+      div.textContent = libro.name;
+      div.onclick = () => mostrarCapitulos(i, libro);
+      lista.appendChild(div);
+    });
 
-  // Guardar todos los versículos
-  let contador = 0;
-  data.forEach(libro => {
-    libro.chapters.forEach((cap, c) => {
-      const capNum = c + 1;
-      Object.keys(cap).forEach(v => {
-        const ref = `${libro.name} ${capNum}:${v}`;
-        biblia[ref] = cap[v];
-        biblia[ref.toLowerCase()] = cap[v];
-        contador++;
+    // Guardar todos los versículos
+    let contador = 0;
+    data.forEach(libro => {
+      libro.chapters.forEach((cap, c) => {
+        const capNum = c + 1;
+        Object.keys(cap).forEach(v => {
+          const ref = `${libro.name} ${capNum}:${v}`;
+          biblia[ref] = cap[v];
+          biblia[ref.toLowerCase()] = cap[v];
+          contador++;
+        });
       });
     });
-  });
 
-  document.getElementById("status").innerHTML = `¡BIBLIA CARGADA! ${contador.toLocaleString()} versículos listos`;
-}
+    document.getElementById("status").innerHTML = `¡BIBLIA CARGADA! ${contador.toLocaleString()} versículos listos`;
+  })
+  .catch(err => {
+    console.error(err);
+    document.getElementById("status").innerHTML = "Error cargando el archivo. Recarga con Ctrl+F5";
+  });
 
 function mostrarCapitulos(i, libro) {
   const lista = document.getElementById("lista-libros");
