@@ -2,20 +2,20 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Proyector Iglesia - Como EasyWorship</title>
+<title>Proyector Iglesia - Reina Valera 1865</title>
 <style>
   body{font-family:Arial,sans-serif;margin:0;background:#f0f0f0;display:flex}
   #izq{width:320px;background:#fff;border-right:2px solid #ddd;height:100vh;overflow-y:auto;padding:10px;font-size:15px}
-  #der{flex:1;padding:20px}
+  #der{flex:1;padding:20px;overflow-y:auto}
   #c{max-width:900px;margin:0 auto;background:#fff;padding:20px;border-radius:12px;box-shadow:0 5px 20px rgba(0,0,0,0.2)}
   input,button{padding:12px;font-size:18px;margin:8px 0;width:100%;border-radius:8px;border:none}
   input{border:2px solid #ccc}
   button{background:#0066cc;color:#fff;cursor:pointer;font-weight:bold}
   .p{background:#28a745}
-  .libro{font-weight:bold;color:#0066cc;cursor:pointer;padding:8px;background:#f0f8ff;margin:3px 0;border-radius:5px}
-  .capitulo{cursor:pointer;padding:6px 12px;margin:2px 0;background:#e3f2fd;border-radius:4px}
-  .vers{cursor:pointer;padding:8px;margin:2px 0;background:#f9f9f9;border-left:4px solid #0066cc}
-  #r{margin-top:15px;padding:15px;background:#f9f9f9;border-radius:8px;max-height:500px;overflow-y:auto}
+  .libro{font-weight:bold;color:#0066cc;cursor:pointer;padding:10px;background:#f0f8ff;margin:4px 0;border-radius:6px}
+  .capitulo{cursor:pointer;padding:8px 15px;margin:3px 0;background:#e3f2fd;border-radius:5px}
+  .vers{cursor:pointer;padding:10px;margin:4px 0;background:#f9f9f9;border-left:5px solid #0066cc;border-radius:4px}
+  #r{margin-top:15px;padding:15px;background:#f9f9f9;border-radius:8px;max-height:60vh;overflow-y:auto}
   #s{position:fixed;top:0;left:0;width:100vw;height:100vh;background:#000;color:#fff;font-size:7vw;display:flex;align-items:center;justify-content:center;text-align:center;padding:5%;line-height:1.9;display:none;z-index:99}
   .x{position:fixed;top:15px;right:15px;padding:15px 28px;font-size:38px;background:#c00;color:#fff;border-radius:50%;display:none;z-index:100;cursor:pointer}
   .ok{color:green;font-weight:bold;text-align:center;font-size:20px}
@@ -24,7 +24,7 @@
 <body>
 
 <div id="izq">
-  <h3 style="text-align:center;color:#0066cc">Libros de la Biblia</h3>
+  <h3 style="text-align:center;color:#0066cc;margin:10px 0">Libros de la Biblia</h3>
   <div id="lista-libros">Cargando libros...</div>
 </div>
 
@@ -32,7 +32,7 @@
   <div id="c">
     <h1 style="text-align:center;color:#0066cc">Proyector Iglesia - Reina Valera 1865</h1>
     <div id="status" class="ok">Cargando Biblia completa...</div>
-    <input type="text" id="q" placeholder="Buscar: Juan 3:16 | amor | padre nuestro..." autofocus>
+    <input type="text" id="q" placeholder="Juan 3:16 | Salmos 23 | amor | padre nuestro" autofocus>
     <button onclick="buscar()">Buscar en toda la Biblia</button>
     <button class="p" onclick="proyectar()">Proyectar (F11)</button>
     <div id="r"></div>
@@ -43,61 +43,62 @@
 <button class="x" onclick="cerrar()">X</button>
 
 <script>
-let biblia = {};
-let librosOrdenados = [];
-let cargada = false;
+let biblia = {};        // ref → texto
+let libros = [];        // array con los libros completos
 
-fetch('SPA_RV.json')
+fetch('SpaRV1865.json')
   .then(r => r.json())
   .then(data => {
-    let contador = 0;
-    librosOrdenados = Object.keys(data);
+    libros = data;  // guardamos el array completo
 
-    // Llenar lista de libros
+    // Mostrar lista de libros
     const lista = document.getElementById("lista-libros");
     lista.innerHTML = "";
-    librosOrdenados.forEach(libro => {
+    data.forEach((libro, idx) => {
       const div = document.createElement("div");
       div.className = "libro";
-      div.textContent = libro;
-      div.onclick = () => mostrarCapitulos(libro, data[libro]);
+      div.textContent = libro.name;
+      div.onclick = () => mostrarCapitulos(idx, libro);
       lista.appendChild(div);
     });
 
-    // Guardar todos los versículos
-    for (let libro in data) {
-      for (let cap in data[libro]) {
-        for (let ver in data[libro][cap]) {
-          const texto = data[libro][cap][ver];
-          const ref = `${libro} ${cap}:${ver}`;
+    // Guardar todos los versículos en objeto plano para búsqueda rápida
+    let contador = 0;
+    data.forEach(libro => {
+      const nombreLibro = libro.name;
+      libro.chapters.forEach((capitulo, cIdx) => {
+        const capNum = cIdx + 1;
+        Object.keys(capitulo).forEach(ver => {
+          const texto = capitulo[ver];
+          const ref = `${nombreLibro} ${capNum}:${ver}`;
           biblia[ref] = texto;
           biblia[ref.toLowerCase()] = texto;
           contador++;
-        }
-      }
-    }
-    cargada = true;
-    document.getElementById("status").innerHTML = `¡BIBLIA CARGADA! ${contador.toLocaleString()} versículos`;
+        });
+      });
+    });
+
+    document.getElementById("status").innerHTML = `¡BIBLIA CARGADA! ${contador.toLocaleString()} versículos listos`;
   });
 
-function mostrarCapitulos(libro, capitulos) {
+function mostrarCapitulos(idxLibro, libro) {
   const lista = document.getElementById("lista-libros");
-  lista.innerHTML = `<div style="background:#0066cc;color:white;padding:10px;cursor:pointer" onclick="location.reload()">← ${libro}</div>`;
-  Object.keys(capitulos).sort((a,b)=>a-b).forEach(cap => {
+  lista.innerHTML = `<div class="libro" onclick="location.reload()" style="background:#0066cc;color:white">← ${libro.name}</div>`;
+  libro.chapters.forEach((cap, cIdx) => {
     const div = document.createElement("div");
     div.className = "capitulo";
-    div.textContent = `Capítulo ${cap}`;
-    div.onclick = () => mostrarVersiculos(libro, cap, capitulos[cap]);
+    div.textContent = `Capítulo ${cIdx + 1}`;
+    div.onclick = () => mostrarVersiculos(libro.name, cIdx + 1, cap);
     lista.appendChild(div);
   });
 }
 
-function mostrarVersiculos(libro, cap, versiculos) {
+function mostrarVersiculos(nombreLibro, capNum, capitulo) {
   const r = document.getElementById("r");
-  r.innerHTML = `<h3 style="color:#0066cc">${libro} ${cap}</h3>`;
-  Object.keys(versiculos).sort((a,b)=>a-b).forEach(ver => {
-    const texto = versiculos[ver];
-    const ref = `${libro} ${cap}:${ver}`;
+  r.innerHTML = `<h3 style="color:#0066cc">${nombreLibro} ${capNum}</h3>`;
+  Object.keys(capitulo).sort((a,b)=>a-b).forEach(ver => {
+    const texto = capitulo[ver];
+    const ref = `${nombreLibro} ${capNum}:${ver}`;
     r.innerHTML += `<div class="vers" onclick="ver('${ref}')">
       <b>${ver}</b> ${texto}
     </div>`;
@@ -106,7 +107,6 @@ function mostrarVersiculos(libro, cap, versiculos) {
 
 // Búsqueda global
 function buscar(){
-  if (!cargada) { document.getElementById("r").innerHTML = "Cargando…"; return; }
   const q = document.getElementById("q").value.trim().toLowerCase();
   const r = document.getElementById("r"); r.innerHTML = "";
   if (!q) return;
@@ -115,7 +115,7 @@ function buscar(){
   for (let ref in biblia){
     if (ref.toLowerCase().includes(q) || biblia[ref].toLowerCase().includes(q)){
       resultados.push(ref);
-      if (resultados.length > 100) break;
+      if (resultados.length > 120) break;
     }
   }
   if (resultados.length===0){ r.innerHTML="<i>No encontrado</i>"; return; }
@@ -139,4 +139,3 @@ document.getElementById("q").addEventListener("keypress",e=>{if(e.key==="Enter")
 </script>
 </body>
 </html>
-
