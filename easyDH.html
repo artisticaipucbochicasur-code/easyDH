@@ -19,9 +19,9 @@
 </head>
 <body>
 <div id="c">
-  <h1 style="text-align:center;color:#0066cc">Proyector Iglesia - RV1865</h1>
-  <div id="status" class="ok">Cargando Biblia...</div>
-  <input type="text" id="q" placeholder="Juan 3:16 | Salmos 23 | amor" autofocus>
+  <h1 style="text-align:center;color:#0066cc">Proyector Iglesia - Reina Valera 1865</h1>
+  <div id="status" class="ok">Cargando Biblia completa (31 102 versículos)...</div>
+  <input type="text" id="q" placeholder="Juan 3:16 | Salmos 23 | amor | padre nuestro" autofocus>
   <button onclick="buscar()">Buscar</button>
   <button class="p" onclick="proyectar()">Proyectar (F11)</button>
   <div id="r"></div>
@@ -31,9 +31,10 @@
 
 <script>
 let biblia = {};
+let cargada = false;
 
-// Carga y convierte el formato nuevo de scrollmapper
-fetch('SpaRV1865.json')
+// ==== CARGA LA BIBLIA COMPLETA (funciona con el formato actual de scrollmapper) ====
+fetch('https://raw.githubusercontent.com/scrollmapper/bible_databases/master/json/es/SpaRV1865.json')
   .then(r => r.json())
   .then(data => {
     let contador = 0;
@@ -48,27 +49,36 @@ fetch('SpaRV1865.json')
         }
       }
     }
+    cargada = true;
     document.getElementById("status").innerHTML = `¡BIBLIA CARGADA! ${contador.toLocaleString()} versículos listos`;
   })
-  .catch(err => {
-    console.error(err);
-    document.getElementById("status").innerHTML = "Error cargando el JSON. Usa el archivo correcto.";
+  .catch(() => {
+    document.getElementById("status").innerHTML = "Error de red. Intenta refrescar.";
   });
 
+// ==== BÚSQUEDA ====
 function buscar(){
-  const q = document.getElementById("q").value.trim().toLowerCase();
-  const r = document.getElementById("r"); r.innerHTML="";
-  if(!q) return;
+  if (!cargada) {
+    document.getElementById("r").innerHTML = "<i>Espera un momento, la Biblia aún se está cargando…</i>";
+    return;
+  }
+  const q = document.getElementById("q").value.trim();
+  if (!q) return;
+  const lower = q.toLowerCase();
+  const r = document.getElementById("r");
+  r.innerHTML = "";
 
   let resultados = [];
-  for(let ref in biblia){
-    if(ref.toLowerCase().includes(q) || biblia[ref].toLowerCase().includes(q)){
+
+  // Búsqueda exacta o parcial en referencia
+  for (let ref in biblia) {
+    if (ref.toLowerCase().includes(lower) || biblia[ref].toLowerCase().includes(lower)) {
       resultados.push(ref);
-      if(resultados.length > 80) break;
+      if (resultados.length > 100) break;
     }
   }
 
-  if(resultados.length===0){
+  if (resultados.length === 0) {
     r.innerHTML = "<i>No encontrado</i>";
     return;
   }
@@ -79,13 +89,16 @@ function buscar(){
   });
 }
 
+// ==== PROYECCIÓN ====
 function ver(ref){
   document.getElementById("t").innerHTML = `<div style="font-size:1.4em;color:#ff0">${ref}</div><br>${biblia[ref]}`;
-  document.getElementById("s").style.display="flex";
-  document.querySelector(".x").style.display="block";
+  mostrarPantalla();
 }
 function proyectar(){
   document.getElementById("t").innerHTML = document.getElementById("r").innerHTML.replace(/onclick="[^"]*"/g,"");
+  mostrarPantalla();
+}
+function mostrarPantalla(){
   document.getElementById("s").style.display="flex";
   document.querySelector(".x").style.display="block";
 }
@@ -93,7 +106,11 @@ function cerrar(){
   document.getElementById("s").style.display="none";
   document.querySelector(".x").style.display="none";
 }
-document.getElementById("q").addEventListener("keypress",e=>{if(e.key==="Enter") buscar();});
+
+// Enter = buscar
+document.getElementById("q").addEventListener("keypress", e => {
+  if (e.key === "Enter") buscar();
+});
 </script>
 </body>
 </html>
