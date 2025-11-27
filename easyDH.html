@@ -19,8 +19,8 @@
 </head>
 <body>
 <div id="c">
-  <h1 style="text-align:center;color:#0066cc">Proyector Iglesia - Reina Valera 1865</h1>
-  <div id="status" class="ok">Cargando Biblia completa (31 102 versículos)...</div>
+  <h1 style="text-align:center;color:#0066cc">Proyector Iglesia - RV1865</h1>
+  <div id="status" class="ok">Cargando Biblia completa...</div>
   <input type="text" id="q" placeholder="Juan 3:16 | Salmos 23 | amor | padre nuestro" autofocus>
   <button onclick="buscar()">Buscar</button>
   <button class="p" onclick="proyectar()">Proyectar (F11)</button>
@@ -33,9 +33,12 @@
 let biblia = {};
 let cargada = false;
 
-// ==== CARGA LA BIBLIA COMPLETA (funciona con el formato actual de scrollmapper) ====
-fetch('https://raw.githubusercontent.com/scrollmapper/bible_databases/master/json/es/SpaRV1865.json')
-  .then(r => r.json())
+// Carga exactamente tu archivo: SpaRV1865.json (tal como lo tienes)
+fetch('SpaRV1865.json')
+  .then(r => {
+    if (!r.ok) throw new Error("No se encuentra SpaRV1865.json");
+    return r.json();
+  })
   .then(data => {
     let contador = 0;
     for (let libro in data) {
@@ -52,25 +55,26 @@ fetch('https://raw.githubusercontent.com/scrollmapper/bible_databases/master/jso
     cargada = true;
     document.getElementById("status").innerHTML = `¡BIBLIA CARGADA! ${contador.toLocaleString()} versículos listos`;
   })
-  .catch(() => {
-    document.getElementById("status").innerHTML = "Error de red. Intenta refrescar.";
+  .catch(err => {
+    console.error(err);
+    document.getElementById("status").innerHTML = "Error: " + err.message;
   });
 
-// ==== BÚSQUEDA ====
 function buscar(){
   if (!cargada) {
-    document.getElementById("r").innerHTML = "<i>Espera un momento, la Biblia aún se está cargando…</i>";
+    document.getElementById("r").innerHTML = "<i>Espera unos segundos, la Biblia se está cargando…</i>";
     return;
   }
+
   const q = document.getElementById("q").value.trim();
   if (!q) return;
+
   const lower = q.toLowerCase();
   const r = document.getElementById("r");
   r.innerHTML = "";
 
   let resultados = [];
 
-  // Búsqueda exacta o parcial en referencia
   for (let ref in biblia) {
     if (ref.toLowerCase().includes(lower) || biblia[ref].toLowerCase().includes(lower)) {
       resultados.push(ref);
@@ -89,25 +93,23 @@ function buscar(){
   });
 }
 
-// ==== PROYECCIÓN ====
 function ver(ref){
   document.getElementById("t").innerHTML = `<div style="font-size:1.4em;color:#ff0">${ref}</div><br>${biblia[ref]}`;
-  mostrarPantalla();
+  mostrar();
 }
 function proyectar(){
   document.getElementById("t").innerHTML = document.getElementById("r").innerHTML.replace(/onclick="[^"]*"/g,"");
-  mostrarPantalla();
+  mostrar();
 }
-function mostrarPantalla(){
-  document.getElementById("s").style.display="flex";
-  document.querySelector(".x").style.display="block";
+function mostrar(){
+  document.getElementById("s").style.display = "flex";
+  document.querySelector(".x").style.display = "block";
 }
 function cerrar(){
-  document.getElementById("s").style.display="none";
-  document.querySelector(".x").style.display="none";
+  document.getElementById("s").style.display = "none";
+  document.querySelector(".x").style.display = "none";
 }
 
-// Enter = buscar
 document.getElementById("q").addEventListener("keypress", e => {
   if (e.key === "Enter") buscar();
 });
