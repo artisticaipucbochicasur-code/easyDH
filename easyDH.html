@@ -47,7 +47,7 @@ let biblia = {};
 let librosOrdenados = [];
 let cargada = false;
 
-fetch('SpaRV1865.json')
+fetch('SPA_RV.json')
   .then(r => r.json())
   .then(data => {
     let contador = 0;
@@ -139,3 +139,4 @@ document.getElementById("q").addEventListener("keypress",e=>{if(e.key==="Enter")
 </script>
 </body>
 </html>
+
