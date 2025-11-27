@@ -34,9 +34,9 @@ let biblia = {};
 let cargada = false;
 
 // Carga exactamente tu archivo: SpaRV1865.json (tal como lo tienes)
-fetch('SpaRV1865.json')
+fetch('SPA_RV.json')
   .then(r => {
-    if (!r.ok) throw new Error("No se encuentra SpaRV1865.json");
+    if (!r.ok) throw new Error("No se encuentra SPA_RV.json");
     return r.json();
   })
   .then(data => {
@@ -116,3 +116,4 @@ document.getElementById("q").addEventListener("keypress", e => {
 </script>
 </body>
 </html>
+
