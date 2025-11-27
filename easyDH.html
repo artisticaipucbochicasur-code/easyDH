@@ -47,7 +47,7 @@ let biblia = {};
 let books = [];
 
 // 🔥 CARGA CORRECTA DE SPA_RV.json (misma carpeta)
-fetch("SPA_RV.json?" + Date.now())
+fetch("RV1960_COMPLETA.json?" + Date.now())
   .then(r => r.json())
   .then(json => cargarBiblia(json))
   .catch(err => {
@@ -168,3 +168,4 @@ document.getElementById("q").addEventListener("keypress", e => {
 
 </body>
 </html>
+
