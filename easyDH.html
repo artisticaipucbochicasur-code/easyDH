@@ -53,10 +53,10 @@ const fallbackBiblia = {
 };
 
 // Carga el JSON correcto
-fetch('SPA_RV1865.json')
+fetch('SpaRV1865.json')
   .then(r => {
     if (!r.ok) {
-      throw new Error(`HTTP ${r.status}: ${r.statusText} - Verifica el nombre en GitHub (debe ser SPA_RV1865.json)`);
+      throw new Error(`HTTP ${r.status}: ${r.statusText} - Verifica el nombre en GitHub (debe ser SpaRV1865.json)`);
     }
     return r.json();
   })
@@ -125,3 +125,4 @@ document.getElementById("q").addEventListener("keypress",e=>{if(e.key==="Enter")
 </script>
 </body>
 </html>
+
