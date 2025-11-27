@@ -30,7 +30,7 @@
 
 <div id="der">
   <div id="c">
-    <h1 style="text-align:center;color:#0066cc">Proyector Iglesia - Reina Valera 1865</h1>
+    <h1 style="text-align:center;color:#0066cc">Proyector Iglesia - Reina Valera 1909</h1>
     <div id="status" class="ok">Cargando Biblia completa...</div>
     <input type="text" id="q" placeholder="Juan 3:16 | Salmos 23 | amor | padre nuestro" autofocus>
     <button onclick="buscar()">Buscar en toda la Biblia</button>
@@ -44,54 +44,60 @@
 
 <script>
 let biblia = {};
-let libros = [];
+let books = [];
 
-// CARGA TU ARCHIVO LOCAL (el que está en el mismo repo)
-fetch('SpaRV1865.json?' + Date.now())   // el ? + Date.now() evita caché de GitHub
+// 🔥 CARGA CORRECTA DE SPA_RV.json (misma carpeta)
+fetch("SPA_RV.json?" + Date.now())
   .then(r => r.json())
-  .then(data => {
-    libros = data;
-
-    // Mostrar libros
-    const lista = document.getElementById("lista-libros");
-    lista.innerHTML = "";
-    data.forEach((libro, i) => {
-      const div = document.createElement("div");
-      div.className = "libro";
-      div.textContent = libro.name;
-      div.onclick = () => mostrarCapitulos(i, libro);
-      lista.appendChild(div);
-    });
-
-    // Guardar todos los versículos
-    let contador = 0;
-    data.forEach(libro => {
-      libro.chapters.forEach((cap, c) => {
-        const capNum = c + 1;
-        Object.keys(cap).forEach(v => {
-          const ref = `${libro.name} ${capNum}:${v}`;
-          biblia[ref] = cap[v];
-          biblia[ref.toLowerCase()] = cap[v];
-          contador++;
-        });
-      });
-    });
-
-    document.getElementById("status").innerHTML = `¡BIBLIA CARGADA! ${contador.toLocaleString()} versículos listos`;
-  })
+  .then(json => cargarBiblia(json))
   .catch(err => {
     console.error(err);
-    document.getElementById("status").innerHTML = "Error cargando el archivo. Recarga con Ctrl+F5";
+    document.getElementById("status").innerHTML = "Error cargando SPA_RV.json";
   });
 
-function mostrarCapitulos(i, libro) {
+function cargarBiblia(json) {
+  books = json.books;
   const lista = document.getElementById("lista-libros");
-  lista.innerHTML = `<div class="libro" onclick="location.reload()" style="background:#0066cc;color:#fff">← ${libro.name}</div>`;
-  libro.chapters.forEach((cap, c) => {
+  lista.innerHTML = "";
+
+  // Mostrar libros
+  books.forEach((libro, i) => {
+    const div = document.createElement("div");
+    div.className = "libro";
+    div.textContent = libro.name;
+    div.onclick = () => mostrarCapitulos(i);
+    lista.appendChild(div);
+  });
+
+  // Construir índice bíblico para búsqueda rápida
+  let contador = 0;
+  books.forEach(libro => {
+    libro.chapters.forEach(cap => {
+      cap.verses.forEach(v => {
+        const ref = `${libro.name} ${cap.chapter}:${v.verse}`;
+        biblia[ref] = v.text;
+        biblia[ref.toLowerCase()] = v.text;
+        contador++;
+      });
+    });
+  });
+
+  document.getElementById("status").innerHTML =
+    `¡BIBLIA CARGADA! ${contador.toLocaleString()} versículos listos`;
+}
+
+function mostrarCapitulos(i) {
+  const libro = books[i];
+  const lista = document.getElementById("lista-libros");
+
+  lista.innerHTML =
+    `<div class="libro" onclick="location.reload()" style="background:#0066cc;color:#fff">← ${libro.name}</div>`;
+
+  libro.chapters.forEach(cap => {
     const div = document.createElement("div");
     div.className = "capitulo";
-    div.textContent = `Capítulo ${c + 1}`;
-    div.onclick = () => mostrarVersiculos(libro.name, c + 1, cap);
+    div.textContent = `Capítulo ${cap.chapter}`;
+    div.onclick = () => mostrarVersiculos(libro.name, cap.chapter, cap.verses);
     lista.appendChild(div);
   });
 }
@@ -99,40 +105,66 @@ function mostrarCapitulos(i, libro) {
 function mostrarVersiculos(nombre, cap, versiculos) {
   const r = document.getElementById("r");
   r.innerHTML = `<h3 style="color:#0066cc;margin:10px 0">${nombre} ${cap}</h3>`;
-  Object.keys(versiculos).sort((a,b)=>a-b).forEach(v => {
-    const texto = versiculos[v];
-    const ref = `${nombre} ${cap}:${v}`;
-    r.innerHTML += `<div class="vers" onclick="ver('${ref}')"><b>${v}</b> ${texto}</div>`;
+
+  versiculos.forEach(v => {
+    const ref = `${nombre} ${cap}:${v.verse}`;
+    r.innerHTML += `<div class="vers" onclick="ver('${ref}')"><b>${v.verse}</b> ${v.text}</div>`;
   });
 }
 
 function buscar() {
   const q = document.getElementById("q").value.trim().toLowerCase();
-  const r = document.getElementById("r"); r.innerHTML = "";
+  const r = document.getElementById("r");
+  r.innerHTML = "";
+
   if (!q) return;
-  let res = [];
+
+  let resultados = [];
   for (let ref in biblia) {
     if (ref.toLowerCase().includes(q) || biblia[ref].toLowerCase().includes(q)) {
-      res.push(ref);
-      if (res.length > 120) break;
+      resultados.push(ref);
+      if (resultados.length > 120) break;
     }
   }
-  if (res.length === 0) { r.innerHTML = "<i>No encontrado</i>"; return; }
-  res.forEach(ref => r.innerHTML += `<div class="vers" onclick="ver('${ref}')"><b>${ref}</b><br>${biblia[ref]}</div>`);
+
+  if (resultados.length === 0) {
+    r.innerHTML = "<i>No encontrado</i>";
+    return;
+  }
+
+  resultados.forEach(ref => {
+    r.innerHTML += `<div class="vers" onclick="ver('${ref}')">
+      <b>${ref}</b><br>${biblia[ref]}
+    </div>`;
+  });
 }
 
 function ver(ref) {
-  document.getElementById("t").innerHTML = `<div style="font-size:1.5em;color:#ff0">${ref}</div><br>${biblia[ref]}`;
+  document.getElementById("t").innerHTML =
+    `<div style="font-size:1.5em;color:#ff0">${ref}</div><br>${biblia[ref]}`;
   mostrar();
 }
-function proyectar() {
-  document.getElementById("t").innerHTML = document.getElementById("r").innerHTML;
-  mostrar();
-}
-function mostrar() { document.getElementById("s").style.display="flex"; document.querySelector(".x").style.display="block"; }
-function cerrar() { document.getElementById("s").style.display="none"; document.querySelector(".x").style.display="none"; }
 
-document.getElementById("q").addEventListener("keypress", e => { if (e.key === "Enter") buscar(); });
+function proyectar() {
+  document.getElementById("t").innerHTML =
+    document.getElementById("r").innerHTML;
+  mostrar();
+}
+
+function mostrar() {
+  document.getElementById("s").style.display = "flex";
+  document.querySelector(".x").style.display = "block";
+}
+
+function cerrar() {
+  document.getElementById("s").style.display = "none";
+  document.querySelector(".x").style.display = "none";
+}
+
+document.getElementById("q").addEventListener("keypress", e => {
+  if (e.key === "Enter") buscar();
+});
 </script>
+
 </body>
 </html>
