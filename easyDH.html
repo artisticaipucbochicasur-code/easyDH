@@ -19,8 +19,8 @@
 </head>
 <body>
 <div id="c">
-  <h1 style="text-align:center;color:#0066cc">Proyector Iglesia - RV1865</h1>
-  <div id="status" class="ok">Cargando Biblia completa...</div>
+  <h1 style="text-align:center;color:#0066cc">Proyector Iglesia - Reina Valera 1865</h1>
+  <div id="status" class="ok">Cargando Biblia completa (31 102 versículos)...</div>
   <input type="text" id="q" placeholder="Juan 3:16 | Salmos 23 | amor | padre nuestro" autofocus>
   <button onclick="buscar()">Buscar</button>
   <button class="p" onclick="proyectar()">Proyectar (F11)</button>
@@ -33,19 +33,15 @@
 let biblia = {};
 let cargada = false;
 
-// Carga exactamente tu archivo: SpaRV1865.json (tal como lo tienes)
-fetch('SPA_RV.json')
-  .then(r => {
-    if (!r.ok) throw new Error("No se encuentra SPA_RV.json");
-    return r.json();
-  })
+fetch('SpaRV1865.json')
+  .then(r => r.json())
   .then(data => {
     let contador = 0;
     for (let libro in data) {
-      for (let capitulo in data[libro]) {
-        for (let versiculo in data[libro][capitulo]) {
-          const texto = data[libro][capitulo][versiculo];
-          const ref = `${libro} ${capitulo}:${versiculo}`;
+      for (let cap in data[libro]) {
+        for (let ver in data[libro][cap]) {
+          const texto = data[libro][cap][ver];
+          const ref = `${libro} ${cap}:${ver}`;
           biblia[ref] = texto;
           biblia[ref.toLowerCase()] = texto;
           contador++;
@@ -55,65 +51,34 @@ fetch('SPA_RV.json')
     cargada = true;
     document.getElementById("status").innerHTML = `¡BIBLIA CARGADA! ${contador.toLocaleString()} versículos listos`;
   })
-  .catch(err => {
-    console.error(err);
-    document.getElementById("status").innerHTML = "Error: " + err.message;
-  });
+  .catch(() => document.getElementById("status").innerHTML = "Error cargando SpaRV1865.json");
 
 function buscar(){
-  if (!cargada) {
-    document.getElementById("r").innerHTML = "<i>Espera unos segundos, la Biblia se está cargando…</i>";
-    return;
-  }
-
-  const q = document.getElementById("q").value.trim();
+  if (!cargada) { document.getElementById("r").innerHTML = "<i>Espera, la Biblia se está cargando…</i>"; return; }
+  const q = document.getElementById("q").value.trim().toLowerCase();
+  const r = document.getElementById("r"); r.innerHTML="";
   if (!q) return;
 
-  const lower = q.toLowerCase();
-  const r = document.getElementById("r");
-  r.innerHTML = "";
-
   let resultados = [];
-
-  for (let ref in biblia) {
-    if (ref.toLowerCase().includes(lower) || biblia[ref].toLowerCase().includes(lower)) {
+  for (let ref in biblia){
+    if (ref.toLowerCase().includes(q) || biblia[ref].toLowerCase().includes(q)){
       resultados.push(ref);
       if (resultados.length > 100) break;
     }
   }
+  if (resultados.length===0){ r.innerHTML="<i>No encontrado</i>"; return; }
 
-  if (resultados.length === 0) {
-    r.innerHTML = "<i>No encontrado</i>";
-    return;
-  }
-
-  resultados.forEach(ref => {
-    r.innerHTML += `<div class="versiculo" onclick="ver('${ref}')">
-      <b>${ref}</b><br>${biblia[ref]}</div>`;
+  resultados.forEach(ref=>{
+    r.innerHTML += `<div class="versiculo" onclick="ver('${ref}')"><b>${ref}</b><br>${biblia[ref]}</div>`;
   });
 }
 
-function ver(ref){
-  document.getElementById("t").innerHTML = `<div style="font-size:1.4em;color:#ff0">${ref}</div><br>${biblia[ref]}`;
-  mostrar();
-}
-function proyectar(){
-  document.getElementById("t").innerHTML = document.getElementById("r").innerHTML.replace(/onclick="[^"]*"/g,"");
-  mostrar();
-}
-function mostrar(){
-  document.getElementById("s").style.display = "flex";
-  document.querySelector(".x").style.display = "block";
-}
-function cerrar(){
-  document.getElementById("s").style.display = "none";
-  document.querySelector(".x").style.display = "none";
-}
+function ver(ref){ document.getElementById("t").innerHTML = `<div style="font-size:1.4em;color:#ff0">${ref}</div><br>${biblia[ref]}`; mostrar(); }
+function proyectar(){ document.getElementById("t").innerHTML = document.getElementById("r").innerHTML.replace(/onclick="[^"]*"/g,""); mostrar(); }
+function mostrar(){ document.getElementById("s").style.display="flex"; document.querySelector(".x").style.display="block"; }
+function cerrar(){ document.getElementById("s").style.display="none"; document.querySelector(".x").style.display="none"; }
 
-document.getElementById("q").addEventListener("keypress", e => {
-  if (e.key === "Enter") buscar();
-});
+document.getElementById("q").addEventListener("keypress",e=>{if(e.key==="Enter") buscar();});
 </script>
 </body>
 </html>
-
