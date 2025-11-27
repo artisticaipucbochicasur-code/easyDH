@@ -32,9 +32,11 @@
 <script>
 let biblia = {};
 
-// Fallback con versículos clave (para probar si JSON falla)
+// Fallback con versículos clave de RV1865
 const fallbackBiblia = {
   "Génesis 1:1": "En el principio creó Dios los cielos y la tierra.",
+  "Génesis 1:2": "Y la tierra estaba desordenada y vacía, y las tinieblas sobre la haz del abismo, y el Espíritu de Dios se movía sobre la haz de las aguas.",
+  "Génesis 1:3": "Y dijo Dios: Sea la luz: y fue la luz.",
   "Juan 3:16": "Porque de tal manera amó Dios al mundo, que ha dado a su Hijo unigénito, para que todo aquel que en él cree, no se pierda, mas tenga vida eterna.",
   "Salmos 23:1": "Jehová es mi pastor; nada me faltará.",
   "Salmos 23:2": "En lugares de delicados pastos me hará descansar; junto a aguas de reposo me pastoreará.",
@@ -50,11 +52,11 @@ const fallbackBiblia = {
   "Isaías 40:31": "Pero los que esperan a Jehová tendrán nuevas fuerzas; levantarán alas como las águilas; correrán, y no se cansarán; caminarán, y no se fatigarán."
 };
 
-// Carga el JSON correcto (SPA_RV1865.json)
+// Carga el JSON correcto
 fetch('SPA_RV1865.json')
   .then(r => {
     if (!r.ok) {
-      throw new Error(`HTTP ${r.status}: ${r.statusText} - Verifica el nombre del archivo en GitHub`);
+      throw new Error(`HTTP ${r.status}: ${r.statusText} - Verifica el nombre en GitHub (debe ser SPA_RV1865.json)`);
     }
     return r.json();
   })
@@ -68,9 +70,9 @@ fetch('SPA_RV1865.json')
     document.getElementById("status").className = "ok";
   })
   .catch(err => {
-    console.error('Error detallado:', err); // Para debug en consola (F12)
-    Object.assign(biblia, fallbackBiblia); // Usa fallback
-    document.getElementById("status").innerHTML = `Error cargando SPA_RV1865.json: ${err.message}. Usando versículos clave para prueba. Sube el archivo correcto a GitHub.`;
+    console.error('Error detallado:', err); // Mira en F12 > Console
+    Object.assign(biblia, fallbackBiblia);
+    document.getElementById("status").innerHTML = `Error: ${err.message}. Usando fallback (prueba Juan 3:16).`;
     document.getElementById("status").className = "error";
   });
 
